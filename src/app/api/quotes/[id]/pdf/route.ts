@@ -81,12 +81,17 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   }
 
   const bytes = await doc.save();
-  return new NextResponse(bytes, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="quote-${id}.pdf"`,
-      "Cache-Control": "no-store",
-    },
-  });
+
+// Konversi Uint8Array -> ArrayBuffer yang pas (respect offset & length)
+const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+
+return new NextResponse(ab, {
+  status: 200,
+  headers: {
+    "Content-Type": "application/pdf",
+    "Content-Disposition": `inline; filename="quote-${id}.pdf"`,
+    "Cache-Control": "no-store"
+  },
+});
+
 }
