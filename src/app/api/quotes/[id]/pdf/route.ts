@@ -80,17 +80,17 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     page.drawText(v, { x: pageW - margin - 160, y, size: 12, font: strong ? fontTitle : fontReg });
   }
 
-  const bytes = await doc.save();
+const bytes = await doc.save();
 
-// Konversi Uint8Array -> ArrayBuffer yang pas (respect offset & length)
-const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+// kirim sebagai Blob (didukung Node 18+ / Netlify runtime)
+const blob = new Blob([bytes], { type: "application/pdf" });
 
-return new NextResponse(ab, {
+return new NextResponse(blob, {
   status: 200,
   headers: {
     "Content-Type": "application/pdf",
     "Content-Disposition": `inline; filename="quote-${id}.pdf"`,
-    "Cache-Control": "no-store"
+    "Cache-Control": "no-store",
   },
 });
 
