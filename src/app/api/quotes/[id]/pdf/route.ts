@@ -82,10 +82,10 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
 const bytes = await doc.save();
 
-// kirim sebagai Blob (didukung Node 18+ / Netlify runtime)
-const blob = new Blob([bytes], { type: "application/pdf" });
+// Use Buffer instead of Blob to avoid type mismatch
+const buffer = Buffer.from(bytes);
 
-return new NextResponse(blob, {
+return new NextResponse(buffer, {
   status: 200,
   headers: {
     "Content-Type": "application/pdf",
