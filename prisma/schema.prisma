@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  directUrl         = env("DIRECT_URL") 
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // hanya dipakai saat migrate dev
+}
+
+model Unit {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  people    Person[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Skill {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  slug      String        @unique
+  aliases   Json? // array of strings (diisi saat impor)
+  people    PersonSkill[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  RateCard  RateCard[]
+}
+
+model Person {
+  id                 String  @id @default(cuid())
+  nama               String
+  gelarDepan         String?
+  gelarBelakang      String?
+  nipNuptk           String?
+  jenisKelamin       String?
+  statusPegawai      String?
+  usiaTahun          Int?
+  usiaBulan          Int?
+  pangkatGolongan    String?
+  pendidikanTerakhir String?
+  unitId             String?
+  unit               Unit?   @relation(fields: [unitId], references: [id])
+
+  skills    PersonSkill[]
+  rateCards RateCard[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PersonSkill {
+  id       String  @id @default(cuid())
+  personId String
+  skillId  String
+  level    Int     @default(3)
+  note     String?
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  skill  Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([personId, skillId])
+}
+
+enum RateUnit {
+  HOUR
+  DAY
+  PACKAGE
+}
+
+model RateCard {
+  id          String   @id @default(cuid())
+  personId    String
+  unit        RateUnit @default(HOUR)
+  amountIDR   Int
+  skillId     String?
+  effectiveAt DateTime @default(now())
+  person      Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  skill       Skill?   @relation(fields: [skillId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([personId, skillId])
+}
+
+model Quote {
+  id          String   @id @default(cuid())
+  title       String
+  client      String
+  contact     String?
+  items       Json
+  subtotal    Int
+  total       Int
+  overheadPct Float    @default(0.15)
+  adminFeePct Float    @default(0.05)
+  discountPct Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
