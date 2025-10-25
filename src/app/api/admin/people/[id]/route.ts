@@ -5,65 +5,38 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// GET /api/admin/people/[id]
-export async function GET(
-  _req: NextRequest,
-  ctx: { params: Promise<{ id: string }> }
-) {
-  const { id } = await ctx.params; // ⬅️ params: Promise —> await
-  const p = await prisma.person.findUnique({ where: { id } });
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function GET(_req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
+  const p = await prisma.person.findUnique({
+    where: { id },
+    include: { unit: true, skills: { include: { skill: true } }, rateCards: true },
+  });
+
   if (!p) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(p);
 }
 
-// PUT /api/admin/people/[id]
-export async function PUT(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> }
-) {
-  const { id } = await ctx.params;
-
-  if (
-    process.env.ADMIN_KEY &&
-    req.headers.get("x-admin-key") !== process.env.ADMIN_KEY
-  ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function PUT(req: NextRequest, { params }: Ctx) {
+  if (process.env.ADMIN_KEY) {
+    const key = req.headers.get("x-admin-key") ?? "";
+    if (key !== process.env.ADMIN_KEY) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const b = await req.json();
-
-  const updated = await prisma.person.update({
-    where: { id },
-    data: {
-      nama: b.nama,
-      gelarDepan: b.gelarDepan ?? null,
-      gelarBelakang: b.gelarBelakang ?? null,
-      nipNuptk: b.nipNuptk ?? null,
-      jenisKelamin: b.jenisKelamin ?? null,
-      statusPegawai: b.statusPegawai ?? null,
-      pangkatGolongan: b.pangkatGolongan ?? null,
-      pendidikanTerakhir: b.pendidikanTerakhir ?? null,
-      unitId: b.unitId ?? null,
-    },
-  });
-
+  const { id } = await params;
+  const data = await req.json();
+  const updated = await prisma.person.update({ where: { id }, data });
   return NextResponse.json(updated);
 }
 
-// DELETE /api/admin/people/[id]
-export async function DELETE(
-  req: NextRequest,
-  ctx: { params: Promise<{ id: string }> }
-) {
-  const { id } = await ctx.params;
-
-  if (
-    process.env.ADMIN_KEY &&
-    req.headers.get("x-admin-key") !== process.env.ADMIN_KEY
-  ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function DELETE(req: NextRequest, { params }: Ctx) {
+  if (process.env.ADMIN_KEY) {
+    const key = req.headers.get("x-admin-key") ?? "";
+    if (key !== process.env.ADMIN_KEY) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
+  const { id } = await params;
   await prisma.person.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
